@@ -1,23 +1,24 @@
 # tourism-france-dashboard
-# 🏖️ Tourisme International en France - Dashboard d'Analyse
+
+# Tourisme International en France - Dashboard d'Analyse
 
 **Projet de Data Science - ESIEE Paris**
 
-Dashboard interactif d'analyse du tourisme international en France basé sur des données Open Data. Ce projet permet de visualiser les flux touristiques, leur origine géographique et leur impact économique pour éclairer les décideurs publics et les acteurs du secteur touristique.
+Dashboard interactif d'analyse du tourisme international en France basé sur des données Open Data. Ce projet analyse les flux touristiques, leur origine géographique et leur impact économique pour fournir des outils d'aide à la décision aux acteurs du secteur touristique et aux décideurs publics.
 
 ---
 
-## 📋 Table des matières
+## Table des matières
 
-- [User Guide](#-user-guide)
-- [Data](#-data)
-- [Developer Guide](#-developer-guide)
-- [Rapport d'Analyse](#-rapport-danalyse)
-- [Copyright](#-copyright)
+- [User Guide](#user-guide)
+- [Data](#data)
+- [Developer Guide](#developer-guide)
+- [Rapport d'Analyse](#rapport-danalyse)
+- [Copyright](#copyright)
 
 ---
 
-##  User Guide
+## User Guide
 
 ### Prérequis
 
@@ -82,25 +83,25 @@ Le dashboard sera accessible à l'adresse : **http://localhost:8050**
 
 Le dashboard comporte **4 pages principales** accessibles via les onglets en haut :
 
-1. **🏠 Accueil** : Vue d'ensemble et contexte du projet
-2. **🗺️ Régions** : Cartes interactives des flux touristiques
-3. **🌍 International** : Analyse détaillée par pays
-4. **💼 Économie** : Impact économique et retombées
+1. **Accueil** : Vue d'ensemble et contexte du projet
+2. **Régions** : Cartes interactives des flux touristiques par région
+3. **International** : Analyse détaillée par pays (41 pays individuels)
+4. **Économie** : Impact économique et retombées par marché
 
 #### Fonctionnalités interactives
 
 **Filtres disponibles :**
 - **Période temporelle** : Sélectionnez date de début et date de fin
-- **Région d'origine** : Filtrez par continent/région du monde
+- **Région d'origine** : Filtrez par continent ou région du monde
 - **Année** : Filtrez par année spécifique
 - **Indicateurs** : Choisissez entre touristes, nuitées ou durée de séjour
 
 **Interactions avec les graphiques :**
-- **Survol** : Passez la souris sur les éléments pour voir les détails
-- **Zoom** : Utilisez la molette ou les boutons +/- sur les cartes
+- **Survol** : Passez la souris sur les éléments pour afficher les détails
+- **Zoom** : Utilisez la molette ou les boutons sur les cartes
 - **Déplacement** : Cliquez-glissez pour déplacer les cartes
-- **Sélection multiple** : Utilisez les dropdowns pour comparer plusieurs pays/régions
-- **Export** : Téléchargez les données filtrées en CSV (bouton disponible dans certaines sections)
+- **Sélection multiple** : Utilisez les dropdowns pour comparer plusieurs pays ou régions
+- **Export** : Téléchargez les données filtrées en CSV (disponible dans certaines sections)
 
 #### Arrêt du dashboard
 
@@ -108,7 +109,7 @@ Pour arrêter le serveur, appuyez sur `Ctrl+C` dans le terminal.
 
 ---
 
-## 📊 Data
+## Data
 
 ### Source des données
 
@@ -181,7 +182,7 @@ Fréquentation hôtelière avec codes ISO3
 
 ---
 
-##  Developer Guide
+## Developer Guide
 
 ### Architecture du code
 
@@ -206,8 +207,8 @@ tourism-france-dashboard/
     │   ├── __init__.py
     │   ├── home_layout.py          # Page d'accueil
     │   ├── regional_layout.py      # Page Régions avec cartes
-    │   ├── international_layout.py # Page International
-    │   └── economic_layout.py      # Page Économie
+    │   ├── international_layout.py # Page International (41 pays)
+    │   └── economic_layout.py      # Page Économie (approche hybride)
     │
     └── utils/                      # Utilitaires
         ├── clean_data.py           # Script de nettoyage des données
@@ -275,6 +276,19 @@ def register_callbacks(app, df_dict):
         ...
 ```
 
+### Choix des DataFrames par page
+
+Le dashboard utilise une approche stratégique dans le choix des sources de données :
+
+| Page | DataFrame principal | Niveau d'analyse | Justification |
+|------|-------------------|------------------|---------------|
+| **Accueil** | `frequentation_mensuelle` | Global | Vue d'ensemble agrégée |
+| **Régions** | `frequentation_region` | Macro (8-10 régions) | Comparaison stratégique entre zones géographiques |
+| **International** | `frequentation_hoteliere` | Micro (41 pays) | Analyse détaillée pays par pays avec codes ISO3 |
+| **Économie** | Hybride | Macro + Micro | Vue régionale pour tendances globales, vue pays pour insights opérationnels |
+
+Cette architecture permet d'adapter le niveau de granularité aux besoins analytiques de chaque page.
+
 ### Ajouter une nouvelle page
 
 #### Étape 1 : Créer le fichier layout
@@ -290,15 +304,13 @@ import pandas as pd
 def create_layout(df_dict):
     """Crée le layout de la nouvelle page"""
     
-    df = df_dict["frequentation_region"]  # Choisir le DataFrame
+    df = df_dict["frequentation_region"]  # Choisir le DataFrame approprié
     
     layout = dbc.Container([
         html.H2("Titre de la nouvelle page"),
         
-        # Ajouter vos composants (graphiques, filtres, etc.)
+        # Ajouter vos composants
         dcc.Graph(id='mon-graphique'),
-        
-        # Ajouter des filtres
         dcc.Dropdown(id='mon-filtre', options=[...])
     ])
     
@@ -312,15 +324,9 @@ def register_callbacks(app, df_dict):
         Input('mon-filtre', 'value')
     )
     def update_graph(filtre_value):
-        # Logique de mise à jour
         df = df_dict["frequentation_region"]
-        
-        # Filtrer les données
         df_filtered = df[df['Region'] == filtre_value]
-        
-        # Créer le graphique
         fig = px.bar(df_filtered, x='Pays', y='Nombre de touristes')
-        
         return fig
 ```
 
@@ -331,7 +337,7 @@ def register_callbacks(app, df_dict):
 from src.layouts import nouvelle_page_layout
 
 # Ajouter l'onglet dans le layout
-dcc.Tab(label='🆕 Nouvelle Page', value='nouvelle_page')
+dcc.Tab(label='Nouvelle Page', value='nouvelle_page')
 
 # Ajouter le cas dans le callback de navigation
 elif tab == 'nouvelle_page':
@@ -346,7 +352,6 @@ nouvelle_page_layout.register_callbacks(app, df_dict)
 #### Dans le layout :
 
 ```python
-# Ajouter le composant Graph
 dcc.Graph(id='nouveau-graphique')
 ```
 
@@ -358,13 +363,9 @@ dcc.Graph(id='nouveau-graphique')
     Input('filtre-existant', 'value')
 )
 def update_nouveau_graphique(filtre_value):
-    # Récupérer les données
     df = df_dict["frequentation_region"]
-    
-    # Filtrer si nécessaire
     df_filtered = df[df['Region'] == filtre_value]
     
-    # Créer le graphique Plotly
     fig = px.scatter(
         df_filtered,
         x='Nombre de touristes',
@@ -426,13 +427,13 @@ Le mode debug permet :
 
 ---
 
-## 📈 Rapport d'Analyse
+## Rapport d'Analyse
 
 ### Contexte et objectif
 
-Ce dashboard répond à un enjeu d'**intérêt public** : optimiser l'attractivité touristique de la France en comprenant les flux de touristes internationaux, leur origine géographique et leur impact économique.
+Ce dashboard répond à un enjeu d'intérêt public : optimiser l'attractivité touristique de la France en comprenant les flux de touristes internationaux, leur origine géographique et leur impact économique.
 
-Les **questions principales** éclairées par cette analyse sont :
+Les questions principales éclairées par cette analyse sont :
 1. D'où viennent les touristes qui visitent la France ?
 2. Quelle est l'évolution temporelle de ces flux ?
 3. Quel est l'impact économique réel par marché ?
@@ -440,30 +441,30 @@ Les **questions principales** éclairées par cette analyse sont :
 
 ### Principales conclusions
 
-#### 1. 🌍 Géographie des flux touristiques
+#### 1. Géographie des flux touristiques
 
 **Constat** :
-- L'**Europe** domine largement avec plus de 60% des arrivées internationales
-- L'**Amérique du Nord** (USA, Canada) représente le 2ème marché avec ~15% des flux
-- L'**Asie** est en croissance mais reste sous-représentée (~10%)
+- L'Europe domine largement avec plus de 60% des arrivées internationales
+- L'Amérique du Nord (USA, Canada) représente le 2ème marché avec environ 15% des flux
+- L'Asie est en croissance mais reste sous-représentée (environ 10%)
 
 **Insight stratégique** :
-> **Opportunité** : L'Asie (Chine, Inde, Japon) représente un potentiel de croissance majeur. Malgré leur population importante, ces pays génèrent relativement peu de touristes vers la France. Une campagne marketing ciblée pourrait significativement augmenter les flux.
+L'Asie (Chine, Inde, Japon) représente un potentiel de croissance majeur. Malgré leur population importante, ces pays génèrent relativement peu de touristes vers la France. Une campagne marketing ciblée pourrait significativement augmenter les flux.
 
-#### 2. 📊 Impact économique par marché
+#### 2. Impact économique par marché
 
 **Intensité économique** (ratio nuitées/touriste) :
 
 | Marché | Intensité | Interprétation |
 |--------|-----------|----------------|
-| Australie, Brésil, Japon | >15 nuitées/touriste | 🟢 Très rentables - longue durée |
-| Europe de l'Ouest | 8-12 nuitées/touriste | 🟡 Bon équilibre volume/durée |
-| USA, Chine | 5-8 nuitées/touriste | 🟠 Fort volume mais séjours courts |
+| Australie, Brésil, Japon | >15 nuitées/touriste | Très rentables - longue durée |
+| Europe de l'Ouest | 8-12 nuitées/touriste | Bon équilibre volume/durée |
+| USA, Chine | 5-8 nuitées/touriste | Fort volume mais séjours courts |
 
 **Insight stratégique** :
-> **Action prioritaire** : Les touristes américains et chinois représentent un volume élevé mais des séjours courts. Créer des **packages multi-destinations** (Paris + Provence + Côte d'Azur) pourrait allonger leur durée de séjour de 30-40%, générant des millions de nuitées supplémentaires.
+Les touristes américains et chinois représentent un volume élevé mais des séjours courts. Créer des packages multi-destinations (Paris + Provence + Côte d'Azur) pourrait allonger leur durée de séjour de 30-40%, générant des millions de nuitées supplémentaires.
 
-#### 3. ⏱️ Saisonnalité et tendances temporelles
+#### 3. Saisonnalité et tendances temporelles
 
 **Observations** :
 - **Pics de fréquentation** : Juillet-Août (saison estivale)
@@ -471,9 +472,9 @@ Les **questions principales** éclairées par cette analyse sont :
 - **Tendance 2024-2025** : Croissance de +8% par rapport à l'année précédente
 
 **Insight stratégique** :
-> **Recommandation** : Développer une stratégie **hors-saison** avec des tarifs attractifs et des événements culturels en automne/hiver. Cela permettrait de lisser les flux, réduire la pression sur les infrastructures en été, et maximiser l'occupation annuelle.
+Développer une stratégie hors-saison avec des tarifs attractifs et des événements culturels en automne/hiver permettrait de lisser les flux, réduire la pression sur les infrastructures en été, et maximiser l'occupation annuelle.
 
-#### 4. 🎯 Segmentation des marchés (Matrice Volume vs Durée)
+#### 4. Segmentation des marchés (Matrice Volume vs Durée)
 
 **Quadrant 1 - Haute priorité** (Volume élevé + Longue durée) :
 - Allemagne, Royaume-Uni, Benelux
@@ -497,8 +498,8 @@ Les **questions principales** éclairées par cette analyse sont :
 
 1. **Budget marketing** : Prioriser Chine et Inde (marchés émergents à fort potentiel)
 2. **Campagnes ciblées** : 
-   - USA/Chine → Packages multi-destinations
-   - Japon/Australie → Expériences premium longue durée
+   - USA/Chine : Packages multi-destinations
+   - Japon/Australie : Expériences premium longue durée
 3. **Partenariats** : Nouer des accords avec compagnies aériennes asiatiques
 
 #### Pour les collectivités territoriales
@@ -524,65 +525,50 @@ Les **questions principales** éclairées par cette analyse sont :
 
 ---
 
-## 📜 Copyright
+## Copyright et Déclaration d'Originalité
 
-### Déclaration d'originalité
+Je déclare sur l'honneur que ce travail est original et personnel.
 
-Je déclare sur l'honneur que le code fourni a été produit par moi-même, **à l'exception des éléments suivants** :
+### Bibliothèques et frameworks utilisés
 
-#### Frameworks et bibliothèques utilisés
+Ce projet utilise les bibliothèques open-source suivantes :
 
-- **Dash** (Plotly) : Framework Python pour dashboards web - Licence MIT
-  - Documentation : https://dash.plotly.com/
-  - Utilisation : Structure de l'application, callbacks, composants
+- **Dash** (Plotly) - Licence MIT : Framework web pour dashboards interactifs
+- **Plotly** - Licence MIT : Bibliothèque de visualisation interactive
+- **Pandas** - Licence BSD : Manipulation et analyse de données
+- **Dash Bootstrap Components** - Licence MIT : Composants UI pour Dash
 
-- **Plotly** : Bibliothèque de visualisation interactive - Licence MIT
-  - Documentation : https://plotly.com/python/
-  - Utilisation : Graphiques interactifs (choroplèthes, scatter, bar, line)
+### Ressources externes
 
-- **Pandas** : Bibliothèque de manipulation de données - Licence BSD
-  - Documentation : https://pandas.pydata.org/
-  - Utilisation : Traitement et agrégation des données
+- **Codes ISO3** : Codes pays standardisés selon la norme ISO 3166-1 alpha-3 (Organisation internationale de normalisation)
+- **Coordonnées géographiques** : Coordonnées approximatives des centres géographiques des régions du monde (valeurs standards)
 
-- **Dash Bootstrap Components** : Composants UI pour Dash - Licence MIT
-  - Documentation : https://dash-bootstrap-components.opensource.faculty.ai/
-  - Utilisation : Layout responsive et composants stylisés
+### Structure et architecture
 
-#### Mapping des codes ISO3
+L'architecture modulaire du code (séparation layouts/callbacks) s'inspire des bonnes pratiques recommandées dans la documentation officielle de Dash.
 
-Le dictionnaire de mapping pays → codes ISO3 (`iso3_mapping` dans `regional_layout.py` et `international_layout.py`) utilise des codes standards définis par la norme ISO 3166-1 alpha-3.
+### Originalité du code
 
-Source : Organisation internationale de normalisation (ISO)
-
-#### Coordonnées géographiques des régions
-
-Les coordonnées approximatives des centres géographiques des régions du monde (`coords_regions` dans `regional_layout.py`) sont basées sur des valeurs géographiques standards.
-
-#### Inspiration pour la structure
-
-L'architecture modulaire du code (séparation layouts/callbacks) s'inspire des bonnes pratiques recommandées dans la documentation officielle de Dash :
-- https://dash.plotly.com/urls
-- https://dash.plotly.com/sharing-data-between-callbacks
-
-### Tout le reste du code est original
-
+Tout le reste du code est original et développé spécifiquement pour ce projet :
 - Architecture spécifique du dashboard
 - Logique métier et agrégations de données
 - Callbacks et interactions personnalisées
 - Choix de visualisations et design
 - Analyses et insights du rapport
 
-**Date** : [""]  
+**Date** : 15 janvier 2026  
 **Auteur** : Papa Bassirou Diop  
-**Promotion** : ESIEE Paris - 2025/2026
----
-
-## 📧 Contact
-
-Pour toute question concernant ce projet :
-- **Email** : [papabassirou.diop@edu.esiee.fr]
-- **GitHub** : [https://github.com/PapabassirouDiop]
+**Formation** : ESIEE Paris - Promotion 2025/2026  
+**Cours** : Python et Visualisation de Données
 
 ---
 
-**🎓 Projet réalisé dans le cadre du cours de EPIGEP-FI-3-S1-UPM-Python-visualisation-données - ESIEE Paris**
+## Contact
+
+Pour toute information complémentaire concernant ce projet :
+- **Email** : papabassirou.diop@edu.esiee.fr
+- **GitHub** : https://github.com/PapabassirouDiop
+
+---
+
+**Projet réalisé dans le cadre du cours de Python et Visualisation de Données - ESIEE Paris**
