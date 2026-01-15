@@ -64,7 +64,7 @@ def create_layout(df_dict):
             dbc.Col([
                 dbc.Card([
                     dbc.CardBody([
-                        html.H6("👥 Touristes"),
+                        html.H6(" Touristes"),
                         html.H4(id='eco-kpi-touristes', className="text-success")
                     ])
                 ])
@@ -110,7 +110,7 @@ def create_layout(df_dict):
             dbc.Col([
                 dbc.Card([
                     dbc.CardBody([
-                        html.H6("📖 Interprétation", className="card-title"),
+                        html.H6(" Interprétation", className="card-title"),
                         html.P([
                             html.Strong("Quadrant sup. droit 🟢"), html.Br(),
                             "→ Volume ET durée élevés", html.Br(),
@@ -134,7 +134,7 @@ def create_layout(df_dict):
         ], className="mb-4"),
         
         # Évolution économique
-        html.H4("📈 Évolution de l'Impact Économique", className="mt-4 mb-3"),
+        html.H4(" Évolution de l'Impact Économique", className="mt-4 mb-3"),
         dbc.Row([
             dbc.Col([
                 dcc.Graph(id='eco-evolution-chart')
