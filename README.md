@@ -72,7 +72,7 @@ Cette étape :
 ### Lancement du dashboard
 
 ```bash
-python app.py
+python main.py
 ```
 
 Le dashboard sera accessible à l'adresse : **http://localhost:8050**
@@ -188,7 +188,7 @@ Fréquentation hôtelière avec codes ISO3
 
 ```
 tourism-france-dashboard/
-├── app.py                          # Point d'entrée principal de l'application
+├── main.py                         # Point d'entrée principal de l'application
 ├── requirements.txt                # Dépendances Python
 ├── README.md                       # Documentation
 │
@@ -227,7 +227,7 @@ tourism-france-dashboard/
 
 ### Structure de l'application Dash
 
-#### `app.py` - Application principale
+#### `main.py` - Application principale
 
 ```python
 # Initialisation de l'application
@@ -330,7 +330,7 @@ def register_callbacks(app, df_dict):
         return fig
 ```
 
-#### Étape 2 : Importer dans `app.py`
+#### Étape 2 : Importer dans `main.py`
 
 ```python
 # Ajouter l'import
@@ -416,7 +416,7 @@ px.box(df, x='categorie', y='valeur')
 Pour activer le mode debug :
 
 ```python
-# Dans app.py
+# Dans main.py
 app.run_server(debug=True)
 ```
 
