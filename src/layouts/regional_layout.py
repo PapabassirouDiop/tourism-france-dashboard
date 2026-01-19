@@ -4,6 +4,7 @@ import dash_bootstrap_components as dbc
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
+import numpy as np
 
 iso3_mapping = {
     'Canada': 'CAN', 'États-Unis': 'USA', 'États-Unis (y compris Hawaii)': 'USA',
@@ -52,14 +53,14 @@ def create_layout(df_dict):
     dates_str = [str(d) for d in dates]
     
     return dbc.Container(fluid=True, children=[
-        html.H2(" Analyse Géographique du Tourisme", className="text-center mb-3"),
+        html.H2("Analyse Géographique du Tourisme", className="text-center mb-3"),
         html.P("Visualisation des flux touristiques par région du monde", 
                className="text-center text-muted mb-4"),
         
         dbc.Card(dbc.CardBody([
-            html.H5(" Filtres", className="mb-3"),
+            html.H5("Filtres", className="mb-3"),
             
-            html.Label(" Période d'analyse", className="fw-bold mb-2"),
+            html.Label("Période d'analyse", className="fw-bold mb-2"),
             dcc.RangeSlider(
                 id='regional-date-slider',
                 min=0,
@@ -75,7 +76,7 @@ def create_layout(df_dict):
             
             html.Br(),
             
-            html.Label(" Indicateur à visualiser", className="fw-bold mb-2"),
+            html.Label("Indicateur à visualiser", className="fw-bold mb-2"),
             dcc.RadioItems(
                 id='regional-indicator',
                 options=[
@@ -93,7 +94,7 @@ def create_layout(df_dict):
             "Survolez les pays et régions sur les cartes pour voir les détails. Utilisez les filtres pour explorer différentes périodes."
         ], color="info", className="mb-4"),
         
-        html.H4(" Cartes Interactives", className="mb-3"),
+        html.H4("Cartes Interactives", className="mb-3"),
         
         dbc.Row([
             dbc.Col([
@@ -110,18 +111,35 @@ def create_layout(df_dict):
         
         dbc.Row([
             dbc.Col([
-                html.H5(" Top 10 Régions", className="mb-3"),
+                html.H5("Top 10 Régions", className="mb-3"),
                 dcc.Graph(id='regional-top-chart', style={'height': '350px'}, config={'displayModeBar': False})
             ], md=6),
             dbc.Col([
-                html.H5(" Durée de Séjour par Région", className="mb-3"),
+                html.H5("Durée Moyenne par Région", className="mb-3"),
                 dcc.Graph(id='regional-duration-chart', style={'height': '350px'}, config={'displayModeBar': False})
             ], md=6)
         ], className="mb-4"),
         
         html.Hr(className="my-4"),
         
-        html.H4(" Évolution Temporelle par Région", className="mb-3"),
+        # NOUVELLE SECTION : Histogrammes de distribution
+        html.H4("Distributions Statistiques", className="mb-3"),
+        html.P("Histogrammes montrant la répartition des pays selon différents critères", className="text-muted"),
+        
+        dbc.Row([
+            dbc.Col([
+                html.H6("Distribution des durées de séjour", className="mb-2 text-center"),
+                dcc.Graph(id='regional-histogram-duree', style={'height': '350px'}, config={'displayModeBar': False})
+            ], md=6),
+            dbc.Col([
+                html.H6("Distribution du volume de touristes", className="mb-2 text-center"),
+                dcc.Graph(id='regional-histogram-volume', style={'height': '350px'}, config={'displayModeBar': False})
+            ], md=6)
+        ], className="mb-4"),
+        
+        html.Hr(className="my-4"),
+        
+        html.H4("Évolution Temporelle par Région", className="mb-3"),
         html.P("Comparez l'évolution de plusieurs régions dans le temps", className="text-muted"),
         dcc.Dropdown(
             id='regional-regions-dropdown',
@@ -133,25 +151,25 @@ def create_layout(df_dict):
         
         html.Hr(className="my-4"),
         
-        html.H5(" Statistiques Clés (période sélectionnée)", className="mb-3"),
+        html.H5("Statistiques Clés (période sélectionnée)", className="mb-3"),
         dbc.Row([
             dbc.Col(dbc.Card(dbc.CardBody([
-                html.H6(" Touristes", className="text-muted mb-2"),
+                html.H6("Touristes", className="text-muted mb-2"),
                 html.H4(id='kpi-touristes', className="text-primary mb-0")
             ]), className="text-center"), md=3),
             
             dbc.Col(dbc.Card(dbc.CardBody([
-                html.H6(" Nuitées", className="text-muted mb-2"),
+                html.H6("Nuitées", className="text-muted mb-2"),
                 html.H4(id='kpi-nuitees', className="text-success mb-0")
             ]), className="text-center"), md=3),
             
             dbc.Col(dbc.Card(dbc.CardBody([
-                html.H6(" Pays", className="text-muted mb-2"),
+                html.H6("Pays", className="text-muted mb-2"),
                 html.H4(id='kpi-pays', className="text-warning mb-0")
             ]), className="text-center"), md=3),
             
             dbc.Col(dbc.Card(dbc.CardBody([
-                html.H6(" Durée moyenne", className="text-muted mb-2"),
+                html.H6("Durée moyenne", className="text-muted mb-2"),
                 html.H4(id='kpi-duree', className="text-info mb-0")
             ]), className="text-center"), md=3),
         ]),
@@ -168,6 +186,8 @@ def register_callbacks(app, df_dict):
             Output('regional-scatter-map', 'figure'),
             Output('regional-top-chart', 'figure'),
             Output('regional-duration-chart', 'figure'),
+            Output('regional-histogram-duree', 'figure'),
+            Output('regional-histogram-volume', 'figure'),
             Output('regional-regions-dropdown', 'options'),
             Output('kpi-touristes', 'children'),
             Output('kpi-nuitees', 'children'),
@@ -201,7 +221,6 @@ def register_callbacks(app, df_dict):
         
         nb_pays_total = len(df_pays)
         nb_pays_affiches = len(df_pays_valides)
-        nb_pays_manquants = nb_pays_total - nb_pays_affiches
         
         if not df_pays_valides.empty:
             fig_world = px.choropleth(
@@ -322,11 +341,83 @@ def register_callbacks(app, df_dict):
             template="plotly_white"
         )
         
+        # HISTOGRAMME 1 : Distribution des durées de séjour
+        df_pays_duree = df.groupby('Pays', as_index=False)['Durée de séjour moyenne'].mean()
+        
+        # Définir les intervalles (bins)
+        bins_duree = [0, 5, 10, 15, 20, 25, 30, 100]
+        labels_duree = ['0-5j', '5-10j', '10-15j', '15-20j', '20-25j', '25-30j', '30+j']
+        
+        df_pays_duree['Intervalle'] = pd.cut(
+            df_pays_duree['Durée de séjour moyenne'], 
+            bins=bins_duree, 
+            labels=labels_duree,
+            include_lowest=True
+        )
+        
+        # Compter le nombre de pays par intervalle
+        hist_duree = df_pays_duree.groupby('Intervalle', observed=True).size().reset_index(name='Nombre de pays')
+        
+        fig_hist_duree = px.bar(
+            hist_duree,
+            x='Intervalle',
+            y='Nombre de pays',
+            color='Nombre de pays',
+            color_continuous_scale='Blues',
+            text='Nombre de pays'
+        )
+        fig_hist_duree.update_traces(textposition='outside')
+        fig_hist_duree.update_layout(
+            showlegend=False,
+            height=320,
+            margin=dict(l=50, r=20, t=20, b=50),
+            xaxis_title="Durée de séjour (jours)",
+            yaxis_title="Nombre de pays",
+            template="plotly_white"
+        )
+        
+        # HISTOGRAMME 2 : Distribution du volume de touristes
+        df_pays_volume = df.groupby('Pays', as_index=False)['Nombre de touristes'].sum()
+        
+        # Définir les intervalles (bins) en milliers
+        bins_volume = [0, 1000, 5000, 10000, 20000, 50000, 200000]
+        labels_volume = ['0-1M', '1-5M', '5-10M', '10-20M', '20-50M', '50M+']
+        
+        df_pays_volume['Intervalle'] = pd.cut(
+            df_pays_volume['Nombre de touristes'], 
+            bins=bins_volume, 
+            labels=labels_volume,
+            include_lowest=True
+        )
+        
+        # Compter le nombre de pays par intervalle
+        hist_volume = df_pays_volume.groupby('Intervalle', observed=True).size().reset_index(name='Nombre de pays')
+        
+        fig_hist_volume = px.bar(
+            hist_volume,
+            x='Intervalle',
+            y='Nombre de pays',
+            color='Nombre de pays',
+            color_continuous_scale='Greens',
+            text='Nombre de pays'
+        )
+        fig_hist_volume.update_traces(textposition='outside')
+        fig_hist_volume.update_layout(
+            showlegend=False,
+            height=320,
+            margin=dict(l=50, r=20, t=20, b=50),
+            xaxis_title="Volume de touristes (milliers)",
+            yaxis_title="Nombre de pays",
+            template="plotly_white"
+        )
+        
         return (
             fig_world,
             fig_scatter,
             fig_top,
             fig_duree,
+            fig_hist_duree,
+            fig_hist_volume,
             [{'label': r, 'value': r} for r in sorted(df['Region'].unique())],
             f"{df['Nombre de touristes'].sum()/1000:.1f}M",
             f"{df['Nuitées touristiques'].sum()/1000:.1f}M",

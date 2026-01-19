@@ -4,6 +4,7 @@ import dash_bootstrap_components as dbc
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
+import numpy as np
 
 iso3_mapping = {
     'Canada': 'CAN', 'États-Unis': 'USA', 'États-Unis (y compris Hawaii)': 'USA',
@@ -98,6 +99,23 @@ def create_layout(df_dict):
         
         html.H4("Liste Détaillée des Pays", className="mb-3"),
         html.Div(id='intl-table-pays', className="mb-4", style={'maxHeight': '400px', 'overflowY': 'auto'}),
+        
+        html.Hr(className="my-4"),
+        
+        # NOUVELLE SECTION : Histogrammes
+        html.H4("Distributions Statistiques", className="mb-3"),
+        html.P("Analyse de la répartition des pays selon les indicateurs touristiques", className="text-muted"),
+        
+        dbc.Row([
+            dbc.Col([
+                html.H6("Distribution de l'intensité économique (nuitées/touriste)", className="mb-2 text-center"),
+                dcc.Graph(id='intl-histogram-intensite', style={'height': '350px'}, config={'displayModeBar': False})
+            ], md=6),
+            dbc.Col([
+                html.H6("Distribution des nuitées totales par pays", className="mb-2 text-center"),
+                dcc.Graph(id='intl-histogram-nuitees', style={'height': '350px'}, config={'displayModeBar': False})
+            ], md=6)
+        ], className="mb-4"),
         
         html.Hr(className="my-4"),
         
@@ -226,6 +244,8 @@ def register_callbacks(app, df_dict):
          Output('intl-pays-compare', 'options'),
          Output('intl-pays-manquants', 'children'),
          Output('intl-table-pays', 'children'),
+         Output('intl-histogram-intensite', 'figure'),
+         Output('intl-histogram-nuitees', 'figure'),
          Output('intl-kpi-nb-pays', 'children'),
          Output('intl-kpi-total', 'children'),
          Output('intl-kpi-top', 'children'),
@@ -259,6 +279,9 @@ def register_callbacks(app, df_dict):
         })
         
         df_pays.rename(columns={'ISO3_mapped': 'ISO3'}, inplace=True)
+        
+        # Calcul intensité économique
+        df_pays['Intensité économique'] = df_pays['Nuitées touristiques'] / df_pays['Nombre de touristes']
         
         nb_total = len(df_pays)
         
@@ -330,12 +353,74 @@ def register_callbacks(app, df_dict):
             ])
         ], bordered=True, hover=True, responsive=True, striped=True, size="sm")
         
+        # HISTOGRAMME 1 : Distribution de l'intensité économique
+        bins_intensite = [0, 10, 15, 20, 25, 30, 35, 100]
+        labels_intensite = ['0-10', '10-15', '15-20', '20-25', '25-30', '30-35', '35+']
+        
+        df_pays['Intervalle_Intensite'] = pd.cut(
+            df_pays['Intensité économique'],
+            bins=bins_intensite,
+            labels=labels_intensite,
+            include_lowest=True
+        )
+        
+        hist_intensite = df_pays.groupby('Intervalle_Intensite', observed=True).size().reset_index(name='Nombre de pays')
+        
+        fig_hist_intensite = px.bar(
+            hist_intensite,
+            x='Intervalle_Intensite',
+            y='Nombre de pays',
+            color='Nombre de pays',
+            color_continuous_scale='Oranges',
+            text='Nombre de pays'
+        )
+        fig_hist_intensite.update_traces(textposition='outside')
+        fig_hist_intensite.update_layout(
+            showlegend=False,
+            height=320,
+            margin=dict(l=50, r=20, t=20, b=50),
+            xaxis_title="Intensité économique (nuitées par touriste)",
+            yaxis_title="Nombre de pays",
+            template="plotly_white"
+        )
+        
+        # HISTOGRAMME 2 : Distribution des nuitées totales
+        bins_nuitees = [0, 10000, 50000, 100000, 500000, 1000000, 3000000]
+        labels_nuitees = ['0-10k', '10-50k', '50-100k', '100-500k', '500k-1M', '1M+']
+        
+        df_pays['Intervalle_Nuitees'] = pd.cut(
+            df_pays['Nuitées touristiques'],
+            bins=bins_nuitees,
+            labels=labels_nuitees,
+            include_lowest=True
+        )
+        
+        hist_nuitees = df_pays.groupby('Intervalle_Nuitees', observed=True).size().reset_index(name='Nombre de pays')
+        
+        fig_hist_nuitees = px.bar(
+            hist_nuitees,
+            x='Intervalle_Nuitees',
+            y='Nombre de pays',
+            color='Nombre de pays',
+            color_continuous_scale='Purples',
+            text='Nombre de pays'
+        )
+        fig_hist_nuitees.update_traces(textposition='outside')
+        fig_hist_nuitees.update_layout(
+            showlegend=False,
+            height=320,
+            margin=dict(l=50, r=20, t=20, b=50),
+            xaxis_title="Nuitées touristiques totales (milliers)",
+            yaxis_title="Nombre de pays",
+            template="plotly_white"
+        )
+        
         nb_pays_kpi = f"{nb_total}"
         total = f"{df_pays_only['Nombre de touristes'].sum()/1000:.1f}M"
         top_pays = df_pays.loc[df_pays['Nombre de touristes'].idxmax(), 'Pays'] if not df_pays.empty else "N/A"
         duree_moy = f"{df_pays_only['Durée de séjour moyenne'].mean():.1f}j"
         
-        return fig_map, pays_options, pays_manquants_info, table_pays, nb_pays_kpi, total, top_pays, duree_moy
+        return fig_map, pays_options, pays_manquants_info, table_pays, fig_hist_intensite, fig_hist_nuitees, nb_pays_kpi, total, top_pays, duree_moy
     
     @app.callback(
         Output('intl-top-chart', 'figure'),
