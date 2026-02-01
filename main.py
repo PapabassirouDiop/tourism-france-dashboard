@@ -79,7 +79,7 @@ economic_layout.register_callbacks(app, df_dict)
 
 # Lancement de l'application
 if __name__ == '__main__':
-    print("🚀 Lancement du dashboard...")
-    print("📊 Données chargées avec succès")
-    print("🌐 Accédez au dashboard : http://localhost:8050")
+    print(" Lancement du dashboard...")
+    print(" Données chargées avec succès")
+    print(" Accédez au dashboard : http://localhost:8050")
     app.run(debug=True, host='0.0.0.0', port=8050)
