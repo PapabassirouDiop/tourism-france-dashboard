@@ -556,7 +556,7 @@ Tout le reste du code est original et développé spécifiquement pour ce projet
 - Choix de visualisations et design
 - Analyses et insights du rapport
 
-**Date** : 15 janvier 2026  
+**Date** : 01 février  2026  
 **Auteur** : Papa Bassirou Diop  
 **Formation** : ESIEE Paris - Promotion 2025/2026  
 **Cours** : Python et Visualisation de Données
